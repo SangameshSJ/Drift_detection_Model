@@ -3,6 +3,7 @@ import numpy as np
 import plotly.graph_objects as go
 import plotly.io as pio
 
+
 def prepare_data(data):
     """
     Dynamically prepare data for drift analysis:
@@ -31,15 +32,32 @@ def prepare_data(data):
     grouped_data = data.groupby(data.index).mean()
     return grouped_data
 
-def generate_drift_plot(reference_mean, current_mean, column, start_date="2014-01"):
+
+
+
+def generate_drift_plot(reference_mean, current_mean, column):
     """
-    Generate an attractive drift plot with enhanced aesthetics, starting the x-axis from a specified month.
-    This version adds shading for the standard deviation range.
+    Generate an attractive drift plot with enhanced aesthetics and automatic handling of dates or index values.
+    If no dates are present in the index, fallback to integer indexing with spaced tick values.
     """
+    import numpy as np
+
+    # Check if index values are datetime-like; fallback to integer indexing if not
+    if pd.api.types.is_datetime64_any_dtype(current_mean.index):
+        # Handle datetime indices safely
+        x_values = current_mean.index
+        is_datetime = True
+    else:
+        # Fallback for non-date index, use integer positions
+        x_values = current_mean.index
+        is_datetime = False
+
+    # Calculate mean and standard deviation from reference_mean
     mean_val = reference_mean[column].mean()
     std_val = reference_mean[column].std()
 
-    # Filter current_mean to only include data from the specified start date
+    # Filter current_mean dynamically based on index or date range
+    start_date = x_values.min()
     current_mean_filtered = current_mean[current_mean.index >= start_date]
 
     # Elegant color palette
@@ -55,8 +73,8 @@ def generate_drift_plot(reference_mean, current_mean, column, start_date="2014-0
 
     # Shading for Standard deviation range
     fig.add_trace(go.Scatter(
-        x=current_mean_filtered.index.tolist() + current_mean_filtered.index.tolist()[::-1],
-        y=[mean_val + std_val] * len(current_mean_filtered.index) + [mean_val - std_val] * len(current_mean_filtered.index),
+        x=x_values.tolist() + x_values.tolist()[::-1],
+        y=[mean_val + std_val] * len(x_values) + [mean_val - std_val] * len(x_values),
         fill='toself',
         fillcolor=colors['sd_shading'],
         line=dict(width=0),
@@ -66,19 +84,19 @@ def generate_drift_plot(reference_mean, current_mean, column, start_date="2014-0
 
     # Current monthly average line
     fig.add_trace(go.Scatter(
-        x=current_mean_filtered.index,
+        x=x_values,
         y=current_mean_filtered[column],
         mode='lines+markers',
         line=dict(color=colors['current_line'], width=3, shape='spline', smoothing=1.3),
         marker=dict(size=8, symbol='diamond', color=colors['current_line'], line=dict(width=2, color='white')),
         name=f'Monthly Average {column}',
-        hovertemplate='Month: %{x}<br>Value: %{y:.2f}<extra></extra>'
+        hovertemplate='Index: %{x}<br>Value: %{y:.2f}<extra></extra>'
     ))
 
     # Mean line
     fig.add_trace(go.Scatter(
-        x=current_mean_filtered.index,
-        y=[mean_val] * len(current_mean_filtered.index),
+        x=x_values,
+        y=[mean_val] * len(x_values),
         mode='lines',
         line=dict(color=colors['mean_line'], width=2, dash='dot'),
         name='Reference Mean',
@@ -87,37 +105,46 @@ def generate_drift_plot(reference_mean, current_mean, column, start_date="2014-0
 
     # Standard deviation lines (without shaded area)
     fig.add_trace(go.Scatter(
-        x=current_mean_filtered.index,
-        y=[mean_val + std_val] * len(current_mean_filtered.index),
+        x=x_values,
+        y=[mean_val + std_val] * len(x_values),
         mode='lines',
         line=dict(color=colors['sd_lines'], width=1.5, dash='dash'),
         name='Mean + SD',
         hoverinfo='skip'
     ))
     fig.add_trace(go.Scatter(
-        x=current_mean_filtered.index,
-        y=[mean_val - std_val] * len(current_mean_filtered.index),
+        x=x_values,
+        y=[mean_val - std_val] * len(x_values),
         mode='lines',
         line=dict(color=colors['sd_lines'], width=1.5, dash='dash'),
         name='Mean - SD',
         hoverinfo='skip'
     ))
 
+    # Dynamic x-axis ticks
+    if is_datetime:
+        tickvals = x_values  # Use all datetime ticks
+        ticktext = [str(x) for x in x_values]
+    else:
+        step = max(1, len(x_values) // 10)  # Dynamically determine step size for ticks
+        tickvals = x_values[::step]
+        ticktext = [str(x) for x in tickvals]
+
     # Layout with modern design
     fig.update_layout(
         title={
-            'text': f'Drift Analysis: {column} Monthly Trend',
+            'text': f'Drift Analysis: {column} Trend',
             'font': {'size': 20, 'color': 'rgba(0,0,0,0.7)'}
         },
-        xaxis_title='Month',
+        xaxis_title='Index',
         yaxis_title=column,
         template='plotly_white',
         plot_bgcolor=colors['background'],
         hovermode='x unified',
         xaxis=dict(
             tickmode='array',
-            tickvals=current_mean_filtered.index,
-            ticktext=[str(x) for x in current_mean_filtered.index],
+            tickvals=tickvals,
+            ticktext=ticktext,
             tickangle=45
         ),
         legend=dict(
@@ -135,6 +162,8 @@ def generate_drift_plot(reference_mean, current_mean, column, start_date="2014-0
 
     # Ensure Plotly JS is included in the HTML report
     return pio.to_html(fig, full_html=False, include_plotlyjs='cdn')
+
+
 
 def generate_distribution_plot(reference_mean, current_mean, column):
     """

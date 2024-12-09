@@ -1,12 +1,34 @@
 import pandas as pd
 from drift_detection import DriftDetection
 from plotting import generate_drift_report
-
-
+from sklearn.datasets import load_iris
+from sklearn.model_selection import train_test_split
 def main():
     # Load datasets
     reference_data = pd.read_csv("cleaned_reference_data.csv")
     current_data = pd.read_csv("cleaned_current_data.csv")
+
+    # iris dataset
+    # iris = load_iris()
+    # iris_df = pd.DataFrame(data=iris.data, columns=iris.feature_names)
+    # iris_df['species'] = iris.target
+    # species_map = {0: 'setosa', 1: 'versicolor', 2: 'virginica'}
+    # iris_df['species'] = iris_df['species'].map(species_map)
+ 
+    # reference_df, current_df = train_test_split(iris_df, test_size=0.8, random_state=42)
+
+
+
+
+    # reference_data = reference_df
+    # current_data = current_df
+
+
+    # differnt
+
+    # reference_data = pd.read_csv("/home/sigmoid/Downloads/refrence_d.csv")
+    # current_data = pd.read_csv("/home/sigmoid/Downloads/current_d.csv")
+
 
     # Prompt user to exclude specific columns
     print("Available columns:", list(reference_data.columns))
