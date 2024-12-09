@@ -37,7 +37,7 @@ def prepare_data(data):
 
 def generate_drift_plot(reference_mean, current_mean, column):
     """
-    Generate an attractive drift plot with enhanced aesthetics and automatic handling of dates or index values.
+    Generate an drift plot with enhanced aesthetics and automatic handling of dates or index values.
     If no dates are present in the index, fallback to integer indexing with spaced tick values.
     """
     import numpy as np
@@ -167,7 +167,7 @@ def generate_drift_plot(reference_mean, current_mean, column):
 
 def generate_distribution_plot(reference_mean, current_mean, column):
     """
-    Generate an attractive distribution plot with modern aesthetics.
+    Generate distribution plot with modern aesthetics.
     """
     if not np.issubdtype(reference_mean[column].dtype, np.number):
         return None
@@ -231,7 +231,7 @@ def generate_distribution_plot(reference_mean, current_mean, column):
 
 def generate_drift_report(reference_data, current_data, drift_results):
     """
-    Generate an attractive HTML report with interactive visualizations.
+    Generate  HTML report with interactive visualizations.
     """
     reference_mean_monthly = prepare_data(reference_data)
     current_mean_monthly = prepare_data(current_data)
@@ -332,5 +332,5 @@ def generate_drift_report(reference_data, current_data, drift_results):
     with open(html_report_path, 'w') as file:
         file.write(html_content)
 
-    print(f"Attractive report saved as {html_report_path}")
+    print(f"Report saved as {html_report_path}")
     return html_report_path

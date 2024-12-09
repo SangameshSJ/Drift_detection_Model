@@ -5,8 +5,8 @@ from sklearn.datasets import load_iris
 from sklearn.model_selection import train_test_split
 def main():
     # Load datasets
-    reference_data = pd.read_csv("cleaned_reference_data.csv")
-    current_data = pd.read_csv("cleaned_current_data.csv")
+    # reference_data = pd.read_csv("cleaned_reference_data.csv")
+    # current_data = pd.read_csv("cleaned_current_data.csv")
 
     # iris dataset
     # iris = load_iris()
@@ -26,8 +26,8 @@ def main():
 
     # differnt
 
-    # reference_data = pd.read_csv("/home/sigmoid/Downloads/refrence_d.csv")
-    # current_data = pd.read_csv("/home/sigmoid/Downloads/current_d.csv")
+    reference_data = pd.read_csv("/home/sigmoid/Downloads/refrence_d.csv")
+    current_data = pd.read_csv("/home/sigmoid/Downloads/current_d.csv")
 
 
     # Prompt user to exclude specific columns
