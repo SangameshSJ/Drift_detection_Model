@@ -4,8 +4,8 @@ from plotting import generate_drift_report
 
 def main():
     # Load datasets
-    reference_data = pd.read_csv("reference.csv")
-    current_data = pd.read_csv("current.csv")
+    reference_data = pd.read_csv("cleaned_reference_data.csv")
+    current_data = pd.read_csv("cleaned_current_data.csv")
 
     # Prompt user to exclude specific columns
     print("Available columns:", list(reference_data.columns))
