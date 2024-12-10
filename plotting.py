@@ -191,14 +191,14 @@ def generate_distribution_plot(reference_mean, current_mean, column):
     fig = go.Figure()
     fig.add_trace(go.Bar(
         x=bin_midpoints,
-        y=current_counts,
+        y=current_counts * 50,
         name="Current Data",
         marker_color=colors['current'],
         opacity=0.7
     ))
     fig.add_trace(go.Bar(
         x=bin_midpoints,
-        y=reference_counts,
+        y=reference_counts * 50,
         name="Reference Data",
         marker_color=colors['reference'],
         opacity=0.7
