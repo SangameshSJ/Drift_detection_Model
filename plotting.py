@@ -1,5 +1,4 @@
 
-
 import pandas as pd
 import numpy as np
 import plotly.graph_objects as go
@@ -169,7 +168,7 @@ def generate_drift_plot(reference_mean, current_mean, column):
 
 def generate_distribution_plot(reference_mean, current_mean, column):
     """
-    Generate an  distribution plot with modern aesthetics.
+    Generate distribution plot with modern aesthetics.
     """
     if not np.issubdtype(reference_mean[column].dtype, np.number):
         return None
@@ -193,14 +192,14 @@ def generate_distribution_plot(reference_mean, current_mean, column):
     fig = go.Figure()
     fig.add_trace(go.Bar(
         x=bin_midpoints,
-        y=current_counts,
+        y=current_counts * 50,
         name="Current Data",
         marker_color=colors['current'],
         opacity=0.7
     ))
     fig.add_trace(go.Bar(
         x=bin_midpoints,
-        y=reference_counts,
+        y=reference_counts * 50,
         name="Reference Data",
         marker_color=colors['reference'],
         opacity=0.7
@@ -230,10 +229,9 @@ def generate_distribution_plot(reference_mean, current_mean, column):
     )
 
     return pio.to_html(fig, full_html=False, include_plotlyjs='cdn')
-
-def generate_drift_report(reference_data, current_data, drift_results):
+def generate_drift_report(reference_data, current_data, drift_results, res):
     """
-    Generate an HTML report with interactive visualizations.
+    Generate an HTML report with interactive visualizations and additional metrics from the res dictionary.
     """
     reference_mean_monthly = prepare_data(reference_data)
     current_mean_monthly = prepare_data(current_data)
@@ -289,6 +287,43 @@ def generate_drift_report(reference_data, current_data, drift_results):
             </table>
     """
 
+    # Adding metrics from the res dictionary in a two-column format
+    html_content += """
+    <h2 class="text-2xl font-semibold mb-4">Metrics Summary</h2>
+    <table>
+        <thead>
+            <tr>
+                <th class="px-4 py-2">Column Name</th>
+                <th class="px-4 py-2">Metrics</th>
+            </tr>
+        </thead>
+        <tbody>
+    """
+
+    # Loop through res to extract and display metrics
+    for column in reference_mean_monthly.columns:
+        if column != 'Date':
+            metrics = []
+            for metric_name, metric_values in res.items():
+                if metric_name == "mean_variance_shift":
+                    metrics.append(f"Mean Shift: {metric_values[column]['Mean Shift']}")
+                    metrics.append(f"Variance Shift: {metric_values[column]['Variance Shift']}")
+                else:
+                    metrics.append(f"{metric_name.replace('_', ' ').title()}: {metric_values[column]}")
+
+            metrics_str = "<br>".join(metrics)
+            html_content += f"""
+            <tr>
+                <td class="px-4 py-2">{column}</td>
+                <td class="px-4 py-2">{metrics_str}</td>
+            </tr>
+            """
+
+    html_content += """
+        </tbody>
+    </table>
+    """
+
     # Process each numeric column
     for column in reference_mean_monthly.select_dtypes(include=[np.number]).columns:
         try:
@@ -324,7 +359,7 @@ def generate_drift_report(reference_data, current_data, drift_results):
             print(f"Error processing column {column}: {e}")
 
     html_content += """
-    </div>
+        </div>
     </body>
     </html>
     """
@@ -336,3 +371,6 @@ def generate_drift_report(reference_data, current_data, drift_results):
 
     print(f"Report saved as {html_report_path}")
     return html_report_path
+
+
+

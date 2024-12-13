@@ -31,7 +31,19 @@ class DriftDetection:
         reference_data = self.reference_data
         current_data = self.current_data
         results = {}
-        threshold = 0.1
+        threshold_input = input("Enter threshold value or Press enter for default threshold(0.1): ")
+        if threshold_input.strip():  
+            try:
+                threshold = float(threshold_input)
+            except ValueError:
+                print("Invalid input. Using default value 0.1")
+                threshold = 0.1
+        else:
+            threshold = 0.1
+
+        print(f"Threshold value is: {threshold}")
+
+
         is_large_data = len(reference_data) > 1000
 
         # Iterate over each column in the reference dataset
