@@ -1,24 +1,25 @@
-from scipy.stats import ks_2samp, anderson_ksamp, wasserstein_distance, chi2_contingency
+from scipy.stats import ks_2samp, anderson, ttest_ind, wasserstein_distance, chi2_contingency
 from scipy.spatial.distance import jensenshannon
 import pandas as pd
 import numpy as np
 
-def run_anderson_darling(reference_data, current_data):
+def run_anderson_darling_normality(reference_data, current_data):
     """
-    Runs the Anderson-Darling test to check if two numeric datasets have the same distribution.
-
+    Runs the Anderson-Darling test to check if the data follows a normal distribution.
+   
     Parameters:
         reference_data (pd.Series): Historical dataset for comparison.
         current_data (pd.Series): Current dataset to be analyzed for drift.
 
     Returns:
-        tuple: A tuple containing the Anderson-Darling statistic and the test name.
+        tuple: Anderson-Darling statistic and boolean indicating normality.
     """
     try:
-        ad_stat, _, _ = anderson_ksamp([reference_data, current_data])
-        return ad_stat, "Anderson-Darling Test"
+        ad_stat, critical_values, significance = anderson(reference_data)
+        is_normal = ad_stat < critical_values[2]  # Check for normality at 5% significance
+        return ad_stat, is_normal
     except Exception as e:
-        return None, f"Anderson-Darling Test Failed: {e}"
+        return None, False
 
 def run_ks_test(reference_data, current_data):
     """
@@ -45,7 +46,6 @@ def run_wasserstein_distance(reference_data, current_data):
     Returns:
         tuple: A tuple containing the normalized Wasserstein distance and the test name.
     """
-    threshold = 0.1
     norm = max(np.std(reference_data), 0.001)
     wd_norm_value = wasserstein_distance(reference_data, current_data) / norm
     return wd_norm_value, "Wasserstein Distance"
@@ -83,3 +83,17 @@ def run_chi_squared_test(reference_data, current_data):
     contingency_table = pd.crosstab(reference_data, current_data)
     chi2_stat, _, _, _ = chi2_contingency(contingency_table)
     return chi2_stat, "Chi-Squared Test"
+
+def run_ttest(reference_data, current_data):
+    """
+    Runs the T-test to compare means of two normal distributions.
+
+    Parameters:
+        reference_data (pd.Series): Historical dataset for comparison.
+        current_data (pd.Series): Current dataset to be analyzed for drift.
+
+    Returns:
+        tuple: A tuple containing the T-test statistic and the test name.
+    """
+    t_stat, p_value = ttest_ind(reference_data, current_data, equal_var=False)
+    return p_value, "T-Test"

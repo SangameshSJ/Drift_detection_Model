@@ -1,82 +1,81 @@
-import pandas as pd
 from algorithms import (
-    run_anderson_darling,
+    run_anderson_darling_normality,
     run_ks_test,
     run_wasserstein_distance,
     run_js_divergence,
     run_chi_squared_test,
+    run_ttest
 )
+import pandas as pd
+import numpy as np
 
-
-class DriftDetection:
+def detect_drift(reference_data, current_data):
     """
-    Class for detecting drift between reference data and current data
-    using statistical tests based on data type and size.
+    Detects data drift using various statistical tests for numerical and categorical columns.
+
+    Parameters:
+        reference_data (pd.DataFrame): Historical dataset for comparison.
+        current_data (pd.DataFrame): Current dataset to be analyzed for drift.
+
+    Returns:
+        dict: A dictionary with drift metrics for each column.
     """
-    def __init__(self, reference_data, current_data):
-        """
-        Initialize the DriftDetection class with reference and current datasets.
-        :param reference_data: DataFrame representing historical data
-        :param current_data: DataFrame representing the latest data to compare
-        """
-        self.reference_data = reference_data
-        self.current_data = current_data
+    results = {}
+    threshold = 0.1  # Default threshold for large datasets
 
-    def detect_drift(self):
-        """
-        Perform drift detection by applying statistical tests to each column
-        based on its data type and properties.
-        :return: A dictionary containing drift metrics and test results for each column.
-        """
-        reference_data = self.reference_data
-        current_data = self.current_data
-        results = {}
-        threshold = 0.1
-        is_large_data = len(reference_data) > 1000
+    # Classify columns based on data types
+    column_mapping = {
+        'numerical_features': [],
+        'categorical_features': []
+    }
 
-        # Iterate over each column in the reference dataset
-        for column in reference_data.columns:
+    for column in reference_data.columns:
+        if np.issubdtype(reference_data[column].dtype, np.number):
+            column_mapping['numerical_features'].append(column)
+        else:
+            column_mapping['categorical_features'].append(column)
+
+    for column in column_mapping['numerical_features']:
+        n_unique = reference_data[column].nunique()
+        
+        if len(reference_data) > 1000 or len(current_data) > 1000:
+            # Use Wasserstein Distance for large datasets
+            drift_metric, test_name = run_wasserstein_distance(reference_data[column], current_data[column])
+        elif n_unique > 5:  # Numerical column with > 5 unique values
             try:
-                # Check if the column is numeric
-                if pd.api.types.is_numeric_dtype(reference_data[column]):
-                    # Numerical columns
-                    if reference_data[column].nunique() > 5:
-                        if is_large_data:
-                            # Use Wasserstein distance for large datasets
-                            drift_metric, test_name = run_wasserstein_distance(
-                                reference_data[column], current_data[column]
-                            )
-                        else:
-                            # Use Anderson-Darling test for small datasets
-                            drift_metric, test_name = run_anderson_darling(
-                                reference_data[column], current_data[column]
-                            )
-                    else:
-                        # Use Jensen-Shannon divergence for low cardinality numeric data
-                        drift_metric, test_name = run_js_divergence(
-                            reference_data[column], current_data[column]
-                        )
+                # Check if data is normal using Anderson-Darling
+                ad_stat, is_normal = run_anderson_darling_normality(reference_data[column], current_data[column])
+                if is_normal:
+                    # Use T-test for normal data
+                    drift_metric, test_name = run_ttest(reference_data[column], current_data[column])
                 else:
-                    # Categorical columns
-                    if reference_data[column].nunique() <= 2:
-                        # Use Jensen-Shannon divergence for binary categories
-                        drift_metric, test_name = run_js_divergence(
-                            reference_data[column], current_data[column]
-                        )
-                    else:
-                        # Use Chi-squared test for categorical data with more than two categories
-                        drift_metric, test_name = run_chi_squared_test(
-                            reference_data[column], current_data[column]
-                        )
+                    # Use KS Test for non-normal data
+                    drift_metric, test_name = run_ks_test(reference_data[column], current_data[column])
+            except:
+                # Fallback to Wasserstein Distance
+                drift_metric, test_name = run_wasserstein_distance(reference_data[column], current_data[column])
+        else:
+            # Use JS Divergence for fewer unique values
+            drift_metric, test_name = run_js_divergence(reference_data[column], current_data[column])
 
-                # Store results
-                results[column] = {
-                    "Test Name": test_name,
-                    "Drift Metric": drift_metric,
-                    "Threshold Breach": drift_metric > threshold if is_large_data else None,
-                }
+        results[column] = {
+            "Test Name": test_name,
+            "Drift Metric": drift_metric,
+            "Threshold Breach": drift_metric > threshold
+        }
 
-            except Exception as e:
-                results[column] = {"Test Name": "Failed", "Error": str(e)}
+    for column in column_mapping['categorical_features']:
+        try:
+            # Use Chi-Squared Test for categorical features
+            drift_metric, test_name = run_chi_squared_test(reference_data[column], current_data[column])
+        except:
+            # Fallback to JS Divergence for categorical features
+            drift_metric, test_name = run_js_divergence(reference_data[column], current_data[column])
 
-        return results
+        results[column] = {
+            "Test Name": test_name,
+            "Drift Metric": drift_metric,
+            "Threshold Breach": drift_metric > threshold
+        }
+
+    return results
